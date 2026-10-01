@@ -1,0 +1,10 @@
+let db;
+export const open=()=>db?Promise.resolve(db):new Promise((res,rej)=>{const r=indexedDB.open('projectforge',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('projects',{keyPath:'id'});d.createObjectStore('files',{keyPath:'id'}).createIndex('pid','pid');d.createObjectStore('settings')};r.onsuccess=()=>res(db=r.result);r.onerror=()=>rej(r.error)});
+const run=async(s,m,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(s,m),r=fn(t);t.oncomplete=()=>res(r&&r.result);t.onerror=t.onabort=()=>rej(t.error)})};
+export const all=s=>run(s,'readonly',t=>t.objectStore(s).getAll());
+export const get=(s,k)=>run(s,'readonly',t=>t.objectStore(s).get(k));
+export const put=(s,v,k)=>run(s,'readwrite',t=>t.objectStore(s).put(v,k));
+export const del=(s,k)=>run(s,'readwrite',t=>t.objectStore(s).delete(k));
+export const clear=s=>run(s,'readwrite',t=>t.objectStore(s).clear());
+export const filesOf=pid=>run('files','readonly',t=>t.objectStore('files').index('pid').getAll(pid));
+export const delFiles=async pid=>{for(const f of await filesOf(pid))await del('files',f.id)};
